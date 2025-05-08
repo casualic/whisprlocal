@@ -1,110 +1,203 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { router } from 'expo-router';
+import { Filter } from 'lucide-react-native';
+import { mockPodcasts } from '@/data/mockPodcasts';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+export default function ExploreScreen() {
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  const categories = [
+    'All',
+    'Tech',
+    'Business',
+    'Science',
+    'Entertainment',
+    'Health'
+  ];
+  
+  const filteredPodcasts = selectedCategory === 'All'
+    ? mockPodcasts
+    : mockPodcasts.filter(podcast => podcast.category === selectedCategory);
+  
+  const navigateToPodcastDetails = (podcast: any) => {
+    // In a real app, this would navigate to the player with the selected podcast
+    console.log('Selected podcast:', podcast.title);
+    
+    // Mock saving the podcast to library and navigating
+    router.push({
+      pathname: '/(tabs)/player',
+      params: { id: podcast.id }
+    });
+  };
+  
+  const renderCategoryItem = ({ item }: { item: string }) => (
+    <TouchableOpacity
+      style={[
+        styles.categoryBadge,
+        selectedCategory === item && styles.selectedCategoryBadge
+      ]}
+      onPress={() => setSelectedCategory(item)}
+    >
+      <Text
+        style={[
+          styles.categoryText,
+          selectedCategory === item && styles.selectedCategoryText
+        ]}
+      >
+        {item}
+      </Text>
+    </TouchableOpacity>
+  );
+  
+  const renderPodcastItem = ({ item }: { item: any }) => (
+    <TouchableOpacity
+      style={styles.podcastCard}
+      onPress={() => navigateToPodcastDetails(item)}
+    >
+      <Image
+        source={{ uri: item.imageUrl }}
+        style={styles.podcastImage}
+      />
+      <View style={styles.podcastInfo}>
+        <Text style={styles.podcastTitle} numberOfLines={1}>
+          {item.title}
+        </Text>
+        <Text style={styles.podcastCreator} numberOfLines={1}>
+          {item.creator}
+        </Text>
+        <View style={styles.podcastMeta}>
+          <Text style={styles.podcastMetaText}>
+            {item.duration} • {item.category}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
-export default function TabTwoScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Discover</Text>
+        <TouchableOpacity style={styles.filterButton}>
+          <Filter size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+      
+      <View style={styles.categoriesContainer}>
+        <FlatList
+          data={categories}
+          renderItem={renderCategoryItem}
+          keyExtractor={(item) => item}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesList}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+      </View>
+      
+      <FlatList
+        data={filteredPodcasts}
+        renderItem={renderPodcastItem}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.podcastList}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: '#121212',
   },
-  titleContainer: {
+  header: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#272727',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  filterButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1F2937',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoriesContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#272727',
+  },
+  categoriesList: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  categoryBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: '#1F2937',
+    marginRight: 8,
+  },
+  selectedCategoryBadge: {
+    backgroundColor: '#3B82F6',
+  },
+  categoryText: {
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  selectedCategoryText: {
+    color: '#FFFFFF',
+  },
+  podcastList: {
+    padding: 20,
+  },
+  podcastCard: {
+    flexDirection: 'row',
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  podcastImage: {
+    width: 100,
+    height: 100,
+  },
+  podcastInfo: {
+    flex: 1,
+    padding: 12,
+    justifyContent: 'center',
+  },
+  podcastTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  podcastCreator: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 8,
+  },
+  podcastMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  podcastMetaText: {
+    fontSize: 12,
+    color: '#6B7280',
   },
 });
