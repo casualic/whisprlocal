@@ -198,6 +198,7 @@ export default function PlayerScreen() {
         id: podcast.id,
         title: podcast.title,
         audioUrl: podcast.audioUrl,
+        imageUrl: podcast.imageUrl,
         createdAt: podcast.createdAt || new Date().toISOString(),
         duration: podcast.duration || 0
       };
@@ -261,8 +262,16 @@ export default function PlayerScreen() {
       <View style={styles.content}>
         <View style={styles.artworkContainer}>
           <Image
-            source={{ uri: podcast.imageUrl || 'https://via.placeholder.com/300' }}
+            source={podcast.imageUrl ? { uri: podcast.imageUrl } : { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }}
             style={styles.artwork}
+            resizeMode="cover"
+            onError={(e) => {
+              console.error('Error loading image:', e.nativeEvent.error);
+              // Fallback to transparent pixel if image fails to load
+              e.currentTarget.setNativeProps({
+                source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
+              });
+            }}
           />
         </View>
 
@@ -343,10 +352,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+    backgroundColor: '#1F2937',
   },
   artwork: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#1F2937',
   },
   title: {
     fontSize: 24,

@@ -5,6 +5,7 @@ export interface Podcast {
   id: string;
   title: string;
   audioUrl: string;
+  imageUrl: string;
   createdAt: string;
   duration: number;
 }
