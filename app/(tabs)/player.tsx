@@ -79,18 +79,35 @@ export default function PlayerScreen() {
         await sound.unloadAsync();
       }
 
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+      });
+
       // Load and play the new sound
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: podcast.audioUrl },
-        { shouldPlay: true },
+        { shouldPlay: false }, // Don't play immediately
         onPlaybackStatusUpdate
       );
 
       setSound(newSound);
+      
+      // Wait for the sound to be loaded
+      const status = await newSound.getStatusAsync();
+      if (!status.isLoaded) {
+        throw new Error('Failed to load audio');
+      }
+
+      // Now play the sound
+      await newSound.playAsync();
       setIsPlaying(true);
     } catch (error) {
       console.error('Error loading audio:', error);
-      setError('Failed to load audio');
+      setError('Failed to load audio. Please try again.');
+      setIsPlaying(false);
     }
   };
 
@@ -108,6 +125,13 @@ export default function PlayerScreen() {
         return;
       }
 
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded) {
+        // If sound is not loaded, try to reload it
+        await loadAndPlayAudio();
+        return;
+      }
+
       if (isPlaying) {
         await sound.pauseAsync();
         setIsPlaying(false);
@@ -117,7 +141,8 @@ export default function PlayerScreen() {
       }
     } catch (error) {
       console.error('Error controlling playback:', error);
-      setError('Failed to control playback');
+      setError('Failed to control playback. Please try again.');
+      setIsPlaying(false);
     }
   };
 
@@ -125,11 +150,17 @@ export default function PlayerScreen() {
     try {
       if (!sound) return;
       
+      const status = await sound.getStatusAsync();
+      if (!status.isLoaded) {
+        throw new Error('Sound is not loaded');
+      }
+      
       const newPosition = Math.max(0, Math.min(position + seconds * 1000, duration));
       await sound.setPositionAsync(newPosition);
       setPosition(newPosition);
     } catch (error) {
       console.error('Error seeking audio:', error);
+      setError('Failed to seek audio. Please try again.');
     }
   };
 
