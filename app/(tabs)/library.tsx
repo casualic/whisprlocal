@@ -2,9 +2,9 @@ import { useStorage } from '@/hooks/useStorage';
 import { formatDate } from '@/utils/dateFormatter';
 import { formatDuration } from '@/utils/timeFormatter';
 import * as FileSystem from 'expo-file-system';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Calendar, ChevronRight, Clock3, Trash2 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
@@ -13,14 +13,12 @@ export default function LibraryScreen() {
   const [loading, setLoading] = useState(true);
   const { getAllPodcasts, deletePodcast } = useStorage();
 
-  useEffect(() => {
-    loadPodcasts();
-  }, []);
-
   const loadPodcasts = async () => {
     try {
       setLoading(true);
+      console.log('Loading podcasts...');
       const podcastData = await getAllPodcasts();
+      console.log('Loaded podcasts:', podcastData);
       setPodcasts(podcastData);
     } catch (error) {
       console.error('Error loading podcasts:', error);
@@ -28,6 +26,14 @@ export default function LibraryScreen() {
       setLoading(false);
     }
   };
+
+  // Load podcasts when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Library screen focused, reloading podcasts...');
+      loadPodcasts();
+    }, [])
+  );
 
   const handleDelete = async (podcast: any) => {
     Alert.alert(
