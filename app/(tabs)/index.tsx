@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
-import { PodcastApi } from '@/services/podcastApi';
 import { useStorage } from '@/hooks/useStorage';
-import { formatDate } from '@/utils/dateFormatter';
+import { PodcastApi } from '@/services/podcastApi';
+import { router } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Keyboard,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    View
+} from 'react-native';
 
 export default function GenerateScreen() {
   const [prompt, setPrompt] = useState('');
@@ -49,54 +59,61 @@ export default function GenerateScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.title}>Create New Podcast</Text>
-        <Text style={styles.subtitle}>Use AI to generate a podcast on any topic</Text>
-      </View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Create New Podcast</Text>
+            <Text style={styles.subtitle}>Use AI to generate a podcast on any topic</Text>
+          </View>
 
-      <View style={styles.formContainer}>
-        <Text style={styles.label}>Topic</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter a podcast topic..."
-          placeholderTextColor="#6B7280"
-          value={prompt}
-          onChangeText={setPrompt}
-          multiline
-        />
+          <View style={styles.formContainer}>
+            <Text style={styles.label}>Topic</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter a podcast topic..."
+              placeholderTextColor="#6B7280"
+              value={prompt}
+              onChangeText={setPrompt}
+              multiline
+            />
 
-        <Text style={styles.label}>Duration (minutes)</Text>
-        <TextInput
-          style={[styles.input, styles.durationInput]}
-          placeholder="1"
-          placeholderTextColor="#6B7280"
-          value={duration}
-          onChangeText={setDuration}
-          keyboardType="numeric"
-        />
+            <Text style={styles.label}>Duration (minutes)</Text>
+            <TextInput
+              style={[styles.input, styles.durationInput]}
+              placeholder="1"
+              placeholderTextColor="#6B7280"
+              value={duration}
+              onChangeText={setDuration}
+              keyboardType="numeric"
+            />
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity
-          style={styles.generateButton}
-          onPress={handleGenerate}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>Generate Podcast</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={styles.generateButton}
+              onPress={handleGenerate}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.buttonText}>Generate Podcast</Text>
+              )}
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.infoContainer}>
-        <Text style={styles.infoText}>
-          Our AI will create a conversational podcast based on your topic. The generation process typically takes 1-2 minutes.
-        </Text>
-      </View>
-    </View>
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoText}>
+              Our AI will create a conversational podcast based on your topic. The generation process typically takes 1-2 minutes.
+            </Text>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -104,14 +121,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
-    padding: 20,
   },
   headerContainer: {
-    marginBottom: 30,
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#272727',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
   },
@@ -120,38 +138,31 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   formContainer: {
-    marginBottom: 30,
+    padding: 20,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#D1D5DB',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   input: {
     backgroundColor: '#1F2937',
     borderRadius: 8,
-    padding: 16,
+    padding: 12,
     color: '#FFFFFF',
     fontSize: 16,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#374151',
   },
   durationInput: {
-    height: 50,
+    marginBottom: 20,
   },
   generateButton: {
     backgroundColor: '#3B82F6',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    marginTop: 20,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -160,14 +171,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#EF4444',
-    marginBottom: 10,
+    fontSize: 14,
+    marginTop: 8,
   },
   infoContainer: {
-    padding: 16,
-    backgroundColor: '#1F2937',
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#272727',
   },
   infoText: {
     color: '#9CA3AF',
