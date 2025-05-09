@@ -1,6 +1,7 @@
 import { useStorage } from '@/hooks/useStorage';
 import { formatTime } from '@/utils/timeFormatter';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Pause, Play, Save, SkipBack, SkipForward } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
@@ -265,12 +266,53 @@ export default function PlayerScreen() {
             source={podcast.imageUrl ? { uri: podcast.imageUrl } : { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }}
             style={styles.artwork}
             resizeMode="cover"
+            onLoad={() => {
+              console.log('Image loaded successfully from:', podcast.imageUrl);
+            }}
             onError={(e) => {
               console.error('Error loading image:', e.nativeEvent.error);
-              // Fallback to transparent pixel if image fails to load
-              e.currentTarget.setNativeProps({
-                source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
-              });
+              console.log('Attempted to load image from:', podcast.imageUrl);
+              
+              // Check if the file exists
+              if (podcast.imageUrl) {
+                FileSystem.getInfoAsync(podcast.imageUrl)
+                  .then((fileInfo) => {
+                    console.log('File info:', fileInfo);
+                    if (fileInfo.exists) {
+                      // Try to read the file
+                      FileSystem.readAsStringAsync(podcast.imageUrl, {
+                        encoding: FileSystem.EncodingType.Base64,
+                      })
+                        .then((base64) => {
+                          console.log('File exists and can be read, length:', base64.length);
+                          // Try to load the image with the base64 data
+                          e.currentTarget.setNativeProps({
+                            source: { uri: `data:image/jpeg;base64,${base64}` }
+                          });
+                        })
+                        .catch((readError) => {
+                          console.error('Error reading file:', readError);
+                          // Fallback to transparent pixel
+                          e.currentTarget.setNativeProps({
+                            source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
+                          });
+                        });
+                    } else {
+                      console.log('File does not exist at path:', podcast.imageUrl);
+                      // Fallback to transparent pixel
+                      e.currentTarget.setNativeProps({
+                        source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
+                      });
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Error checking file:', error);
+                    // Fallback to transparent pixel
+                    e.currentTarget.setNativeProps({
+                      source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
+                    });
+                  });
+              }
             }}
           />
         </View>

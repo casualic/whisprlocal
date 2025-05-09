@@ -37,6 +37,7 @@ export default function GenerateScreen() {
         id: Date.now().toString(),
         title: prompt,
         audioUrl: response.audioUrl,
+        imageUrl: response.imageUrl,
         createdAt: new Date().toISOString(),
         duration: parseInt(duration), // in minutes
       };
