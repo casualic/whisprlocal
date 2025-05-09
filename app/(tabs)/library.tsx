@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
 import { useStorage } from '@/hooks/useStorage';
 import { formatDate } from '@/utils/dateFormatter';
 import { formatDuration } from '@/utils/timeFormatter';
-import { ChevronRight, Calendar, Clock3 } from 'lucide-react-native';
+import * as FileSystem from 'expo-file-system';
+import { router } from 'expo-router';
+import { Calendar, ChevronRight, Clock3, Trash2 } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 
 export default function LibraryScreen() {
   const [podcasts, setPodcasts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { getAllPodcasts } = useStorage();
+  const { getAllPodcasts, deletePodcast } = useStorage();
 
   useEffect(() => {
     loadPodcasts();
@@ -27,6 +29,44 @@ export default function LibraryScreen() {
     }
   };
 
+  const handleDelete = async (podcast: any) => {
+    Alert.alert(
+      'Delete Podcast',
+      'Are you sure you want to delete this podcast? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete the audio file
+              if (podcast.audioUrl) {
+                try {
+                  await FileSystem.deleteAsync(podcast.audioUrl);
+                } catch (error) {
+                  console.error('Error deleting audio file:', error);
+                }
+              }
+
+              // Delete from storage
+              await deletePodcast(podcast.id);
+              
+              // Refresh the list
+              await loadPodcasts();
+            } catch (error) {
+              console.error('Error deleting podcast:', error);
+              Alert.alert('Error', 'Failed to delete podcast');
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const navigateToPlayer = (id: string) => {
     router.push({
       pathname: '/(tabs)/player',
@@ -34,36 +74,52 @@ export default function LibraryScreen() {
     });
   };
 
-  const renderPodcastItem = ({ item }: { item: any }) => {
+  const renderRightActions = (podcast: any) => {
     return (
       <TouchableOpacity
-        style={styles.podcastItem}
-        onPress={() => navigateToPlayer(item.id)}
+        style={styles.deleteAction}
+        onPress={() => handleDelete(podcast)}
       >
-        <View style={styles.podcastInfo}>
-          <Text style={styles.podcastTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
-          
-          <View style={styles.metadataContainer}>
-            <View style={styles.metadataItem}>
-              <Calendar size={14} color="#9CA3AF" />
-              <Text style={styles.metadataText}>
-                {formatDate(item.createdAt)}
-              </Text>
-            </View>
+        <Trash2 size={24} color="#FFFFFF" />
+      </TouchableOpacity>
+    );
+  };
+
+  const renderPodcastItem = ({ item }: { item: any }) => {
+    return (
+      <Swipeable
+        renderRightActions={() => renderRightActions(item)}
+        rightThreshold={40}
+      >
+        <TouchableOpacity
+          style={styles.podcastItem}
+          onPress={() => navigateToPlayer(item.id)}
+        >
+          <View style={styles.podcastInfo}>
+            <Text style={styles.podcastTitle} numberOfLines={1}>
+              {item.title}
+            </Text>
             
-            <View style={styles.metadataItem}>
-              <Clock3 size={14} color="#9CA3AF" />
-              <Text style={styles.metadataText}>
-                {formatDuration(item.duration)}
-              </Text>
+            <View style={styles.metadataContainer}>
+              <View style={styles.metadataItem}>
+                <Calendar size={14} color="#9CA3AF" />
+                <Text style={styles.metadataText}>
+                  {formatDate(item.createdAt)}
+                </Text>
+              </View>
+              
+              <View style={styles.metadataItem}>
+                <Clock3 size={14} color="#9CA3AF" />
+                <Text style={styles.metadataText}>
+                  {formatDuration(item.duration)}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-        
-        <ChevronRight size={20} color="#6B7280" />
-      </TouchableOpacity>
+          
+          <ChevronRight size={20} color="#6B7280" />
+        </TouchableOpacity>
+      </Swipeable>
     );
   };
 
@@ -165,6 +221,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginLeft: 4,
+  },
+  deleteAction: {
+    backgroundColor: '#EF4444',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
   },
   emptyContainer: {
     flex: 1,
