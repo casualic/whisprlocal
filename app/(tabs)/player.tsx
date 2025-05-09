@@ -2,12 +2,12 @@ import { useStorage } from '@/hooks/useStorage';
 import { formatTime } from '@/utils/timeFormatter';
 import { Audio } from 'expo-av';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Pause, Play, SkipBack, SkipForward } from 'lucide-react-native';
+import { ArrowLeft, Pause, Play, Save, SkipBack, SkipForward } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function PlayerScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, podcast: podcastParam } = useLocalSearchParams<{ id: string; podcast?: string }>();
   const [podcast, setPodcast] = useState<any | null>(null);
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -15,21 +15,30 @@ export default function PlayerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
-  const { getPodcast } = useStorage();
+  const [isSaved, setIsSaved] = useState(false);
+  const { getPodcast, savePodcast } = useStorage();
 
   useEffect(() => {
     const loadPodcast = async () => {
       try {
         setIsLoading(true);
         setError(null);
-        const selectedPodcast = await getPodcast(id);
-        
-        if (!selectedPodcast) {
-          setError('Podcast not found');
-          return;
+
+        // If we have a podcast param, it's a newly generated podcast
+        if (podcastParam) {
+          const newPodcast = JSON.parse(podcastParam);
+          setPodcast(newPodcast);
+          setIsSaved(false);
+        } else {
+          // Otherwise, try to load from storage
+          const savedPodcast = await getPodcast(id);
+          if (!savedPodcast) {
+            setError('Podcast not found');
+            return;
+          }
+          setPodcast(savedPodcast);
+          setIsSaved(true);
         }
-        
-        setPodcast(selectedPodcast);
       } catch (error) {
         console.error('Error loading podcast:', error);
         setError('Failed to load podcast');
@@ -45,7 +54,7 @@ export default function PlayerScreen() {
         sound.unloadAsync();
       }
     };
-  }, [id]);
+  }, [id, podcastParam]);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -164,6 +173,19 @@ export default function PlayerScreen() {
     }
   };
 
+  const handleSave = async () => {
+    try {
+      if (!podcast) return;
+      await savePodcast(podcast);
+      setIsSaved(true);
+      // Navigate back to library screen
+      router.replace('/(tabs)/library');
+    } catch (error) {
+      console.error('Error saving podcast:', error);
+      setError('Failed to save podcast');
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -196,9 +218,16 @@ export default function PlayerScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <ArrowLeft size={24} color="#FFFFFF" />
-      </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <ArrowLeft size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        {!isSaved && (
+          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+            <Save size={24} color="#3B82F6" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={styles.content}>
         <View style={styles.artworkContainer}>
@@ -253,16 +282,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     padding: 20,
   },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   backButton: {
-    position: 'absolute',
-    top: 20,
-    left: 20,
-    zIndex: 1,
+    padding: 8,
+  },
+  saveButton: {
+    padding: 8,
   },
   backButtonText: {
     color: '#FFFFFF',

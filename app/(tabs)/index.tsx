@@ -1,4 +1,3 @@
-import { useStorage } from '@/hooks/useStorage';
 import { PodcastApi } from '@/services/podcastApi';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -20,7 +19,6 @@ export default function GenerateScreen() {
   const [duration, setDuration] = useState('1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { savePodcast } = useStorage();
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -34,7 +32,7 @@ export default function GenerateScreen() {
     try {
       const response = await PodcastApi.generatePodcast(prompt, duration);
       
-      // Save the podcast to local storage
+      // Create a temporary podcast object
       const podcast = {
         id: Date.now().toString(),
         title: prompt,
@@ -43,12 +41,10 @@ export default function GenerateScreen() {
         duration: parseInt(duration), // in minutes
       };
       
-      await savePodcast(podcast);
-      
       // Navigate to the player with the new podcast
       router.push({
         pathname: '/(tabs)/player',
-        params: { id: podcast.id }
+        params: { id: podcast.id, podcast: JSON.stringify(podcast) }
       });
     } catch (err) {
       console.error('Error generating podcast:', err);
