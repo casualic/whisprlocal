@@ -16,17 +16,21 @@ export const useStorage = () => {
   // Save a podcast to storage
   const savePodcast = async (podcast: Podcast) => {
     try {
+      console.log('Saving podcast to storage:', podcast);
       // Get existing podcasts
       const existingPodcastsJson = await AsyncStorage.getItem(PODCASTS_KEY);
+      console.log('Existing podcasts JSON:', existingPodcastsJson);
       const existingPodcasts: Podcast[] = existingPodcastsJson 
         ? JSON.parse(existingPodcastsJson) 
         : [];
       
       // Add new podcast
       const updatedPodcasts = [podcast, ...existingPodcasts];
+      console.log('Updated podcasts array:', updatedPodcasts);
       
       // Save updated list
       await AsyncStorage.setItem(PODCASTS_KEY, JSON.stringify(updatedPodcasts));
+      console.log('Podcasts saved successfully');
       
       return podcast;
     } catch (error) {
@@ -38,12 +42,16 @@ export const useStorage = () => {
   // Get all podcasts
   const getAllPodcasts = async (): Promise<Podcast[]> => {
     try {
+      console.log('Getting all podcasts from storage');
       const podcastsJson = await AsyncStorage.getItem(PODCASTS_KEY);
+      console.log('Retrieved podcasts JSON:', podcastsJson);
       const podcasts = podcastsJson ? JSON.parse(podcastsJson) : [];
       // Sort podcasts by creation date, newest first
-      return podcasts.sort((a: Podcast, b: Podcast) => 
+      const sortedPodcasts = podcasts.sort((a: Podcast, b: Podcast) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
+      console.log('Sorted podcasts:', sortedPodcasts);
+      return sortedPodcasts;
     } catch (error) {
       console.error('Error getting podcasts:', error);
       return [];

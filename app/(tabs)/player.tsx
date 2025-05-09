@@ -175,9 +175,25 @@ export default function PlayerScreen() {
 
   const handleSave = async () => {
     try {
-      if (!podcast) return;
-      await savePodcast(podcast);
+      if (!podcast) {
+        console.error('No podcast to save');
+        return;
+      }
+      
+      // Ensure we have all required fields
+      const podcastToSave = {
+        id: podcast.id,
+        title: podcast.title,
+        audioUrl: podcast.audioUrl,
+        createdAt: podcast.createdAt || new Date().toISOString(),
+        duration: podcast.duration || 0
+      };
+      
+      console.log('Saving podcast:', podcastToSave);
+      const savedPodcast = await savePodcast(podcastToSave);
+      console.log('Podcast saved successfully:', savedPodcast);
       setIsSaved(true);
+      
       // Navigate back to library screen
       router.replace('/(tabs)/library');
     } catch (error) {
