@@ -52,14 +52,26 @@ export default function LibraryScreen() {
               // Delete the audio file
               if (podcast.audioUrl) {
                 try {
-                  await FileSystem.deleteAsync(podcast.audioUrl);
+                  console.log('Deleting audio file:', podcast.audioUrl);
+                  const fileInfo = await FileSystem.getInfoAsync(podcast.audioUrl);
+                  if (fileInfo.exists) {
+                    await FileSystem.deleteAsync(podcast.audioUrl);
+                    console.log('Audio file deleted successfully');
+                  } else {
+                    console.log('Audio file does not exist:', podcast.audioUrl);
+                  }
                 } catch (error) {
                   console.error('Error deleting audio file:', error);
                 }
               }
 
               // Delete from storage
-              await deletePodcast(podcast.id);
+              console.log('Deleting podcast from storage:', podcast.id);
+              const success = await deletePodcast(podcast.id);
+              if (!success) {
+                throw new Error('Failed to delete podcast from storage');
+              }
+              console.log('Podcast deleted from storage successfully');
               
               // Refresh the list
               await loadPodcasts();

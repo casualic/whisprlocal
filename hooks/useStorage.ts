@@ -77,9 +77,19 @@ export const useStorage = () => {
   // Delete a podcast
   const deletePodcast = async (id: string): Promise<boolean> => {
     try {
+      console.log('Deleting podcast with ID:', id);
       const podcasts = await getAllPodcasts();
       const updatedPodcasts = podcasts.filter(podcast => podcast.id !== id);
+      
+      // If the arrays are the same length, the podcast wasn't found
+      if (podcasts.length === updatedPodcasts.length) {
+        console.log('Podcast not found in storage:', id);
+        return false;
+      }
+      
+      // Save the updated list
       await AsyncStorage.setItem(PODCASTS_KEY, JSON.stringify(updatedPodcasts));
+      console.log('Podcast deleted from storage successfully');
       return true;
     } catch (error) {
       console.error('Error deleting podcast:', error);

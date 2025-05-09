@@ -24,6 +24,14 @@ export default function PlayerScreen() {
         setIsLoading(true);
         setError(null);
 
+        // Unload any existing sound
+        if (sound) {
+          console.log('Unloading existing sound');
+          await sound.unloadAsync();
+          setSound(null);
+          setIsPlaying(false);
+        }
+
         // If we have a podcast param, it's a newly generated podcast
         if (podcastParam) {
           const newPodcast = JSON.parse(podcastParam);
@@ -51,6 +59,7 @@ export default function PlayerScreen() {
 
     return () => {
       if (sound) {
+        console.log('Cleaning up sound on unmount');
         sound.unloadAsync();
       }
     };
@@ -85,7 +94,9 @@ export default function PlayerScreen() {
 
       // Unload previous sound if it exists
       if (sound) {
+        console.log('Unloading previous sound before loading new one');
         await sound.unloadAsync();
+        setSound(null);
       }
 
       // Configure audio mode
@@ -95,6 +106,7 @@ export default function PlayerScreen() {
         shouldDuckAndroid: true,
       });
 
+      console.log('Loading new audio from URL:', podcast.audioUrl);
       // Load and play the new sound
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: podcast.audioUrl },
@@ -110,6 +122,7 @@ export default function PlayerScreen() {
         throw new Error('Failed to load audio');
       }
 
+      console.log('New audio loaded successfully');
       // Now play the sound
       await newSound.playAsync();
       setIsPlaying(true);
