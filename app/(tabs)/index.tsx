@@ -1,6 +1,7 @@
 import { PodcastApi } from '@/services/podcastApi';
+import { Audio } from 'expo-av';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Keyboard,
@@ -19,6 +20,45 @@ export default function GenerateScreen() {
   const [duration, setDuration] = useState('1');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [adSound, setAdSound] = useState<Audio.Sound | null>(null);
+  const [showAdMessage, setShowAdMessage] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup: unload the ad sound when component unmounts
+      if (adSound) {
+        adSound.unloadAsync();
+      }
+    };
+  }, [adSound]);
+
+  const playAd = async () => {
+    try {
+      // Configure audio mode
+      await Audio.setAudioModeAsync({
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+      });
+
+      // Load and play the ad
+      const { sound } = await Audio.Sound.createAsync(
+        require('@/assets/audio/ad_read.mp3'),
+        { shouldPlay: true }
+      );
+      setAdSound(sound);
+
+      // When ad finishes playing, unload it
+      sound.setOnPlaybackStatusUpdate(async (status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          await sound.unloadAsync();
+          setAdSound(null);
+        }
+      });
+    } catch (error) {
+      console.error('Error playing ad:', error);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -28,6 +68,10 @@ export default function GenerateScreen() {
 
     setLoading(true);
     setError(null);
+    setShowAdMessage(true);
+    
+    // Start playing the ad
+    await playAd();
 
     try {
       const response = await PodcastApi.generatePodcast(prompt, duration);
@@ -52,6 +96,7 @@ export default function GenerateScreen() {
       setError('Failed to generate podcast. Please try again.');
     } finally {
       setLoading(false);
+      setShowAdMessage(false);
     }
   };
 
@@ -89,6 +134,14 @@ export default function GenerateScreen() {
             />
 
             {error && <Text style={styles.errorText}>{error}</Text>}
+
+            {showAdMessage && (
+              <View style={styles.adMessageContainer}>
+                <Text style={styles.adMessageText}>
+                  Thank you for using our platform! We are generating your podcast - in the meanwhile, please listen to a message from our sponsor.
+                </Text>
+              </View>
+            )}
 
             <TouchableOpacity
               style={styles.generateButton}
@@ -180,5 +233,17 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 14,
     lineHeight: 20,
+  },
+  adMessageContainer: {
+    backgroundColor: '#1F2937',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+  },
+  adMessageText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });
