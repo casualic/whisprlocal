@@ -1,11 +1,10 @@
 import { useStorage } from '@/hooks/useStorage';
 import { formatTime } from '@/utils/timeFormatter';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Pause, Play, Save, SkipBack, SkipForward } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Animated, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function PlayerScreen() {
   const { id, podcast: podcastParam } = useLocalSearchParams<{ id: string; podcast?: string }>();
@@ -18,6 +17,9 @@ export default function PlayerScreen() {
   const [duration, setDuration] = useState(0);
   const [isSaved, setIsSaved] = useState(false);
   const { getPodcast, savePodcast } = useStorage();
+  const [showAd, setShowAd] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const adInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const loadPodcast = async () => {
@@ -217,6 +219,50 @@ export default function PlayerScreen() {
     }
   };
 
+  // Function to handle the fade animation
+  const fadeInOut = () => {
+    Animated.sequence([
+      // Fade in ad (1 second)
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      // Stay on ad (9 seconds)
+      Animated.delay(9000),
+      // Fade out ad (1 second)
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  // Start the ad rotation when component mounts
+  useEffect(() => {
+    const startAdRotation = () => {
+      // Initial state: show podcast image
+      setShowAd(false);
+      fadeAnim.setValue(0);
+
+      // Set up interval to toggle between images
+      adInterval.current = setInterval(() => {
+        setShowAd(prev => !prev);
+        fadeInOut();
+      }, 20000); // Toggle every 20 seconds (10s podcast + 10s ad)
+    };
+
+    startAdRotation();
+
+    // Cleanup interval when component unmounts
+    return () => {
+      if (adInterval.current) {
+        clearInterval(adInterval.current);
+      }
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -262,59 +308,45 @@ export default function PlayerScreen() {
 
       <View style={styles.content}>
         <View style={styles.artworkContainer}>
-          <Image
-            source={podcast.imageUrl ? { uri: podcast.imageUrl } : { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }}
-            style={styles.artwork}
-            resizeMode="cover"
-            onLoad={() => {
-              console.log('Image loaded successfully from:', podcast.imageUrl);
-            }}
-            onError={(e) => {
-              console.error('Error loading image:', e.nativeEvent.error);
-              console.log('Attempted to load image from:', podcast.imageUrl);
-              
-              // Check if the file exists
-              if (podcast.imageUrl) {
-                FileSystem.getInfoAsync(podcast.imageUrl)
-                  .then((fileInfo) => {
-                    console.log('File info:', fileInfo);
-                    if (fileInfo.exists) {
-                      // Try to read the file
-                      FileSystem.readAsStringAsync(podcast.imageUrl, {
-                        encoding: FileSystem.EncodingType.Base64,
-                      })
-                        .then((base64) => {
-                          console.log('File exists and can be read, length:', base64.length);
-                          // Try to load the image with the base64 data
-                          e.currentTarget.setNativeProps({
-                            source: { uri: `data:image/jpeg;base64,${base64}` }
-                          });
-                        })
-                        .catch((readError) => {
-                          console.error('Error reading file:', readError);
-                          // Fallback to transparent pixel
-                          e.currentTarget.setNativeProps({
-                            source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
-                          });
-                        });
-                    } else {
-                      console.log('File does not exist at path:', podcast.imageUrl);
-                      // Fallback to transparent pixel
-                      e.currentTarget.setNativeProps({
-                        source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
-                      });
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Error checking file:', error);
-                    // Fallback to transparent pixel
-                    e.currentTarget.setNativeProps({
-                      source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
-                    });
-                  });
-              }
-            }}
-          />
+          <Animated.View style={[
+            styles.artworkWrapper,
+            {
+              opacity: fadeAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 0],
+              }),
+            },
+          ]}>
+            <Image
+              source={podcast.imageUrl ? { uri: podcast.imageUrl } : { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }}
+              style={styles.artwork}
+              resizeMode="cover"
+              onLoad={() => {
+                console.log('Image loaded successfully from:', podcast.imageUrl);
+              }}
+              onError={(e) => {
+                console.error('Error loading image:', e.nativeEvent.error);
+                console.log('Attempted to load image from:', podcast.imageUrl);
+                e.currentTarget.setNativeProps({
+                  source: { uri: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=' }
+                });
+              }}
+            />
+          </Animated.View>
+          
+          <Animated.View style={[
+            styles.artworkWrapper,
+            StyleSheet.absoluteFill,
+            {
+              opacity: fadeAnim,
+            },
+          ]}>
+            <Image
+              source={require('@/assets/images/ad_image.jpg')}
+              style={styles.artwork}
+              resizeMode="cover"
+            />
+          </Animated.View>
         </View>
 
         <Text style={styles.title}>{podcast.title}</Text>
@@ -451,5 +483,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,
+  },
+  artworkWrapper: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
 });
